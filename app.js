@@ -1,13 +1,24 @@
-const express = require("express");
-const { Configuration, OpenAIApi } = require("openai");
+const express = require('express');
+var cors = require('cors');
+const { chunk } = require('lodash');
+const { Configuration, OpenAIApi } = require('openai');
 
-require("dotenv").config();
+require('dotenv').config();
 
 const textPreset =
-  "В указанном ниже текста найди ключевые слова и переведи их на английский. Выведи только английские слова через пробел:";
+  'В указанном ниже текста найди ключевые слова и переведи их на английский. Выведи только английские слова через пробел:';
 
 const app = express();
 app.use(express.json());
+app.use(cors({ credentials: true, origin: '*' }));
+app.use(function (req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept'
+  );
+  next();
+});
 
 const port = 3000;
 
@@ -17,20 +28,21 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-app.get("/", async (req, res) => {
+app.post('/', async (req, res) => {
+  console.log(req.body);
   const message = req.body?.message;
-  const numberOfImages = req.body?.n ?? 1;
+  const numberOfImages = parseInt(req.body?.n) || 1;
 
   if (!message) {
-    return res.status(500).send("Missing required field: message");
+    return res.status(500).send('Missing required field: message');
   }
 
   try {
     const chatResponse = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: 'gpt-3.5-turbo',
       messages: [
         {
-          role: "user",
+          role: 'user',
           content: `${textPreset} ${message}`,
         },
       ],
@@ -40,9 +52,23 @@ app.get("/", async (req, res) => {
       prompt: chatResponse.data.choices[0].message.content,
       n: numberOfImages,
     });
-    return res.send(JSON.stringify(imageResponse.data));
-  } catch(e) {
-    return res.status(500).send(e.response.data.error.message);
+    const wordsArr = message.split(' ');
+
+    const wordsCount = wordsArr.length / numberOfImages;
+
+    const splittedArr = chunk(wordsArr, Math.ceil(wordsCount));
+    console.log(wordsCount, Math.ceil(wordsCount));
+
+    console.log(splittedArr);
+
+    const response = imageResponse.data.data.map((item, index) => ({
+      ...item,
+      text: splittedArr[index]?.join(' ') ?? '',
+    }));
+
+    return res.send(JSON.stringify(response));
+  } catch (e) {
+    return res.status(500).send(e.response?.data.error.message);
   }
 });
 
