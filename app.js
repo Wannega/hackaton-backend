@@ -32,6 +32,7 @@ app.post('/', async (req, res) => {
   console.log(req.body);
   const message = req.body?.message;
   const numberOfImages = parseInt(req.body?.n) || 1;
+  const style = req.body?.style;
 
   if (!message) {
     return res.status(500).send('Missing required field: message');
@@ -49,7 +50,10 @@ app.post('/', async (req, res) => {
     });
 
     const imageResponse = await openai.createImage({
-      prompt: chatResponse.data.choices[0].message.content,
+      prompt:
+        'style ' +
+        style +
+        chatResponse.data.choices[0].message.content,
       n: numberOfImages,
     });
     const wordsArr = message.split(' ');
@@ -57,9 +61,6 @@ app.post('/', async (req, res) => {
     const wordsCount = wordsArr.length / numberOfImages;
 
     const splittedArr = chunk(wordsArr, Math.ceil(wordsCount));
-    console.log(wordsCount, Math.ceil(wordsCount));
-
-    console.log(splittedArr);
 
     const response = imageResponse.data.data.map((item, index) => ({
       ...item,
