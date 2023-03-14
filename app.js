@@ -57,6 +57,15 @@ app.post('/', async (req, res) => {
       n: numberOfImages,
       size: '256x256',
     });
+    const coverResponse = await openai.createImage({
+      prompt:
+        'style ' +
+        style +
+        'book cover illustration 4k beautiful detailed realistic real details' +
+        chatResponse.data.choices[0].message.content,
+      n: 1,
+      size: '256x256',
+    });
     const wordsArr = message.split(' ');
 
     const wordsCount = wordsArr.length / numberOfImages;
@@ -67,6 +76,11 @@ app.post('/', async (req, res) => {
       ...item,
       text: splittedArr[index]?.join(' ') ?? '',
     }));
+
+    response.unshift({
+      url: coverResponse.data.data[0].url,
+      text: '',
+    });
 
     return res.send(JSON.stringify(response));
   } catch (e) {
