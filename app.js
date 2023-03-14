@@ -55,6 +55,7 @@ app.post('/', async (req, res) => {
         style +
         chatResponse.data.choices[0].message.content,
       n: numberOfImages,
+      size: '256x256',
     });
     const wordsArr = message.split(' ');
 
